@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Công Cụ Tạo & Giải Thế Bí Block Blast</title>
+    <style>
+      /* ================= MÀU SẮC & KHUNG CƠ BẢN ================= */
+      :root {
+        --bg-body: #1e1e24;
+        --bg-container: #14141a;
+        --grid-border: #3a3a44;
+        --cell-empty: #22222a;
+        --cell-filled: #a5c8ff;
+        --cell-ghost: rgba(165, 200, 255, 0.4);
+        --cell-invalid: rgba(255, 100, 100, 0.5);
+        --text-main: #ffffff;
+        --text-sub: #a0a0aa;
+        --btn-primary: #4caf50;
+        --btn-primary-hover: #45a049;
+        --btn-secondary: #3a3a4c;
+        --btn-secondary-hover: #4a4a5c;
+        --btn-retry: #2196f3;
+        --btn-retry-hover: #1976d2;
+      }
+
+      body {
+        background-color: var(--bg-body);
+        color: var(--text-main);
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 20px;
+      }
+
+      .app-container {
+        width: 650px;
+        background-color: var(--bg-container);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      }
+
+      /* HEADER */
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+      .title {
+        font-size: 1.3rem;
+        font-weight: bold;
+      }
+      .mode-badge {
+        background-color: #ff9800;
+        color: #fff;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: bold;
+      }
+      .instructions {
+        color: var(--text-sub);
+        font-size: 0.95rem;
+        margin-bottom: 20px;
+        height: 20px;
+        transition: color 0.3s;
+      }
+
+      /* BÀN CỜ */
+      .game-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(8, 40px);
+        grid-template-rows: repeat(8, 40px);
+        gap: 2px;
+        background-color: var(--grid-border);
+        border: 2px solid var(--grid-border);
+        padding: 2px;
+        border-radius: 6px;
+      }
+      .cell {
+        width: 40px;
+        height: 40px;
+        background-color: var(--cell-empty);
+        border-radius: 4px;
+        transition: 0.1s;
+      }
+      .cell.filled {
+        background-color: var(--cell-filled);
+        box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.2);
+      }
+      .cell.ghost {
+        background-color: var(--cell-ghost);
+        cursor: pointer;
+      }
+      .cell.invalid {
+        background-color: var(--cell-invalid);
+        cursor: not-allowed;
+      }
+      .setup-mode .cell:hover {
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        box-sizing: border-box;
+        cursor: pointer;
+      }
+
+      /* THƯ VIỆN & KHAY CHỨA KHỐI */
+      .library-section {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px dashed var(--grid-border);
+        width: 100%;
+      }
+      .section-title {
+        font-size: 0.9rem;
+        color: var(--text-sub);
+        margin-bottom: 10px;
+        text-align: center;
+      }
+      .blocks-tray {
+        display: flex;
+        gap: 15px;
+        min-height: 80px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .block-wrapper {
+        display: grid;
+        gap: 2px;
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 6px;
+        transition:
+          transform 0.2s,
+          background-color 0.2s;
+        background-color: rgba(255, 255, 255, 0.05);
+      }
+      .block-wrapper:hover {
+        transform: scale(1.1);
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      .block-wrapper.selected {
+        border: 1px dashed #fff;
+        background-color: rgba(255, 255, 255, 0.15);
+        transform: scale(1.1);
+      }
+
+      .block-cell {
+        width: 20px;
+        height: 20px;
+        background-color: var(--cell-filled);
+        border-radius: 3px;
+      }
+      .block-cell.empty {
+        background-color: transparent;
+      }
+
+      /* NÚT ĐIỀU KHIỂN */
+      .footer {
+        margin-top: 25px;
+        display: flex;
+        gap: 15px;
+      }
+      .btn {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+      }
+      .btn-start {
+        background-color: var(--btn-primary);
+        color: white;
+      }
+      .btn-start:hover {
+        background-color: var(--btn-primary-hover);
+      }
+      .btn-reset {
+        background-color: var(--btn-secondary);
+        color: white;
+      }
+      .btn-reset:hover {
+        background-color: var(--btn-secondary-hover);
+      }
+      .btn-retry {
+        background-color: var(--btn-retry);
+        color: white;
+      }
+      .btn-retry:hover {
+        background-color: var(--btn-retry-hover);
+      }
+
+      .hide {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app-container" id="app">
+      <div class="header">
+        <div class="title">Tạo & Giải Thế Bí Block Blast</div>
+        <div id="mode-badge" class="mode-badge">CHẾ ĐỘ CÀI ĐẶT</div>
+      </div>
+      <div id="instructions" class="instructions">
+        1. Nhấp vào lưới để vẽ chướng ngại vật. 2. Chọn tối đa 3 khối.
+      </div>
+
+      <div class="game-area">
+        <div id="grid" class="grid setup-mode"></div>
+
+        <div class="library-section">
+          <div class="section-title" id="tray-title">
+            Các khối đã chọn (Tối đa 3) - Bấm vào khối để bỏ chọn:
+          </div>
+          <div id="selected-tray" class="blocks-tray"></div>
+        </div>
+
+        <div class="library-section" id="library-section">
+          <div class="section-title">Thư viện khối (Bấm để thêm vào khay):</div>
+          <div id="library-tray" class="blocks-tray"></div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <button id="btn-clear" class="btn btn-reset">Xóa Trắng</button>
+        <button id="btn-retry" class="btn btn-retry hide">
+          Chơi Lại Bàn Này
+        </button>
+        <button id="btn-main" class="btn btn-start">Bắt Đầu Giải Đố</button>
+      </div>
+    </div>
+
+    <script>
+      class AdvancedBlockBlastUI {
+        constructor() {
+          this.mode = "SETUP";
+
+          this.setupBoard = Array.from({ length: 8 }, () => Array(8).fill(0));
+          this.playBoard = [];
+
+          this.blockLibrary = [
+            { id: 1, shape: [[1]] },
+            { id: 2, shape: [[1, 1]] },
+            { id: 3, shape: [[1, 1, 1]] },
+            { id: 4, shape: [[1], [1], [1]] },
+            { id: 5, shape: [[1], [1], [1], [1], [1]] },
+            {
+              id: 6,
+              shape: [
+                [1, 1],
+                [1, 1],
+              ],
+            },
+            {
+              id: 7,
+              shape: [
+                [0, 0, 1],
+                [0, 0, 1],
+                [1, 1, 1],
+              ],
+            },
+            {
+              id: 8,
+              shape: [
+                [1, 0, 0],
+                [1, 0, 0],
+                [1, 1, 1],
+              ],
+            },
+            {
+              id: 9,
+              shape: [
+                [0, 1, 0],
+                [1, 1, 1],
+              ],
+            },
+          ];
+
+          this.selectedBlocksSetup = [];
+          this.activeBlocksPlay = [];
+          this.selectedPlayIndex = null;
+
+          this.gridEl = document.getElementById("grid");
+          this.libraryTrayEl = document.getElementById("library-tray");
+          this.selectedTrayEl = document.getElementById("selected-tray");
+          this.instructionsEl = document.getElementById("instructions");
+          this.badgeEl = document.getElementById("mode-badge");
+          this.btnMain = document.getElementById("btn-main");
+          this.btnClear = document.getElementById("btn-clear");
+          this.btnRetry = document.getElementById("btn-retry");
+          this.librarySection = document.getElementById("library-section");
+          this.trayTitle = document.getElementById("tray-title");
+
+          this.btnMain.addEventListener("click", () => this.toggleMode());
+          this.btnClear.addEventListener("click", () => {
+            if (this.mode === "SETUP") this.clearSetupBoard();
+          });
+          // Lắng nghe sự kiện nút Chơi Lại
+          this.btnRetry.addEventListener("click", () => this.retryPlayMode());
+
+          this.initSetupMode();
+        }
+
+        toggleMode() {
+          if (this.mode === "SETUP") {
+            if (this.selectedBlocksSetup.length === 0) {
+              alert(
+                "Vui lòng chọn ít nhất 1 khối từ thư viện trước khi bắt đầu!",
+              );
+              return;
+            }
+            this.startPlayMode();
+          } else {
+            this.initSetupMode();
+          }
+        }
+
+        initSetupMode() {
+          this.mode = "SETUP";
+          this.badgeEl.innerText = "CHẾ ĐỘ CÀI ĐẶT";
+          this.badgeEl.style.backgroundColor = "#ff9800";
+          this.instructionsEl.innerText =
+            "1. Nhấp vào lưới để vẽ chướng ngại vật. 2. Chọn khối.";
+          this.instructionsEl.style.color = "var(--text-sub)";
+          this.btnMain.innerText = "Bắt Đầu Giải Đố";
+          this.btnMain.className = "btn btn-start";
+
+          this.btnClear.classList.remove("hide");
+          this.btnRetry.classList.add("hide"); // Ẩn nút Retry ở chế độ Setup
+          this.librarySection.classList.remove("hide");
+
+          this.gridEl.classList.add("setup-mode");
+          this.trayTitle.innerText = `Các khối đã chọn (${this.selectedBlocksSetup.length}/3) - Bấm vào khối để bỏ chọn:`;
+
+          this.renderGrid(this.setupBoard);
+          this.renderLibrary();
+          this.renderSelectedTray();
+        }
+
+        clearSetupBoard() {
+          this.setupBoard = Array.from({ length: 8 }, () => Array(8).fill(0));
+          this.renderGrid(this.setupBoard);
+        }
+
+        startPlayMode() {
+          this.mode = "PLAY";
+          this.badgeEl.innerText = "CHẾ ĐỘ CHƠI";
+          this.badgeEl.style.backgroundColor = "#4CAF50";
+          this.instructionsEl.innerText =
+            "Chọn khối và thả vào lưới. Sẽ tự động nổ hàng/cột khi đầy.";
+          this.btnMain.innerText = "Quay Lại Cài Đặt";
+          this.btnMain.className = "btn btn-reset";
+
+          this.btnClear.classList.add("hide");
+          this.btnRetry.classList.remove("hide"); // Hiện nút Retry
+          this.librarySection.classList.add("hide");
+
+          this.gridEl.classList.remove("setup-mode");
+          this.trayTitle.innerText =
+            "Khối đang có (Nhấp để chọn, rê chuột vào bàn cờ để đặt):";
+
+          this.retryPlayMode(); // Dùng chung logic reset trạng thái chơi
+        }
+
+        // TÍNH NĂNG MỚI: Reset lại bàn chơi hiện tại
+        retryPlayMode() {
+          this.playBoard = this.setupBoard.map((row) => [...row]);
+          this.activeBlocksPlay = [...this.selectedBlocksSetup];
+          this.selectedPlayIndex = null;
+
+          this.instructionsEl.innerText =
+            "Đã làm mới bàn cờ! Hãy thử lại chiến thuật khác.";
+          this.instructionsEl.style.color = "var(--text-main)";
+          setTimeout(() => {
+            this.instructionsEl.style.color = "var(--text-sub)";
+          }, 1500);
+
+          this.renderGrid(this.playBoard);
+          this.renderSelectedTray();
+        }
+
+        renderGrid(boardData) {
+          this.gridEl.innerHTML = "";
+          for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+              const cell = document.createElement("div");
+              cell.classList.add("cell");
+              if (boardData[r][c] === 1) cell.classList.add("filled");
+              cell.dataset.r = r;
+              cell.dataset.c = c;
+
+              if (this.mode === "SETUP") {
+                cell.addEventListener("click", () => {
+                  this.setupBoard[r][c] = this.setupBoard[r][c] === 0 ? 1 : 0;
+                  this.renderGrid(this.setupBoard);
+                });
+              } else if (this.mode === "PLAY") {
+                cell.addEventListener("mouseenter", () =>
+                  this.handleHoverPlay(r, c),
+                );
+                cell.addEventListener("click", () =>
+                  this.handleClickPlay(r, c),
+                );
+              }
+              this.gridEl.appendChild(cell);
+            }
+          }
+        }
+
+        createBlockHTML(shape) {
+          const wrapper = document.createElement("div");
+          wrapper.classList.add("block-wrapper");
+          wrapper.style.gridTemplateColumns = `repeat(${shape[0].length}, 20px)`;
+
+          for (let r = 0; r < shape.length; r++) {
+            for (let c = 0; c < shape[0].length; c++) {
+              const miniCell = document.createElement("div");
+              miniCell.classList.add("block-cell");
+              if (shape[r][c] === 0) miniCell.classList.add("empty");
+              wrapper.appendChild(miniCell);
+            }
+          }
+          return wrapper;
+        }
+
+        renderLibrary() {
+          this.libraryTrayEl.innerHTML = "";
+          this.blockLibrary.forEach((block) => {
+            const blockDOM = this.createBlockHTML(block.shape);
+            blockDOM.addEventListener("click", () => {
+              if (this.selectedBlocksSetup.length < 3) {
+                this.selectedBlocksSetup.push(block);
+                this.trayTitle.innerText = `Các khối đã chọn (${this.selectedBlocksSetup.length}/3) - Bấm vào khối để bỏ chọn:`;
+                this.renderSelectedTray();
+              } else {
+                alert("Chỉ được chọn tối đa 3 khối!");
+              }
+            });
+            this.libraryTrayEl.appendChild(blockDOM);
+          });
+        }
+
+        renderSelectedTray() {
+          this.selectedTrayEl.innerHTML = "";
+          const dataToRender =
+            this.mode === "SETUP"
+              ? this.selectedBlocksSetup
+              : this.activeBlocksPlay;
+
+          dataToRender.forEach((block, index) => {
+            const blockDOM = this.createBlockHTML(block.shape);
+            if (this.mode === "PLAY" && this.selectedPlayIndex === index)
+              blockDOM.classList.add("selected");
+
+            blockDOM.addEventListener("click", () => {
+              if (this.mode === "SETUP") {
+                this.selectedBlocksSetup.splice(index, 1);
+                this.trayTitle.innerText = `Các khối đã chọn (${this.selectedBlocksSetup.length}/3) - Bấm vào khối để bỏ chọn:`;
+                this.renderSelectedTray();
+              } else {
+                this.selectedPlayIndex = index;
+                this.renderSelectedTray();
+              }
+            });
+            this.selectedTrayEl.appendChild(blockDOM);
+          });
+        }
+
+        canPlace(blockShape, startR, startC) {
+          for (let r = 0; r < blockShape.length; r++) {
+            for (let c = 0; c < blockShape[0].length; c++) {
+              if (blockShape[r][c] === 1) {
+                const boardR = startR + r;
+                const boardC = startC + c;
+                if (
+                  boardR >= 8 ||
+                  boardC >= 8 ||
+                  this.playBoard[boardR][boardC] === 1
+                )
+                  return false;
+              }
+            }
+          }
+          return true;
+        }
+
+        handleHoverPlay(r, c) {
+          document
+            .querySelectorAll(".cell")
+            .forEach((cell) => cell.classList.remove("ghost", "invalid"));
+          if (this.selectedPlayIndex === null) return;
+
+          const shape = this.activeBlocksPlay[this.selectedPlayIndex].shape;
+          const isValid = this.canPlace(shape, r, c);
+
+          for (let br = 0; br < shape.length; br++) {
+            for (let bc = 0; bc < shape[0].length; bc++) {
+              if (shape[br][bc] === 1) {
+                const boardR = r + br;
+                const boardC = c + bc;
+                if (boardR < 8 && boardC < 8) {
+                  const target = this.gridEl.querySelector(
+                    `[data-r="${boardR}"][data-c="${boardC}"]`,
+                  );
+                  if (target)
+                    target.classList.add(isValid ? "ghost" : "invalid");
+                }
+              }
+            }
+          }
+        }
+
+        handleClickPlay(r, c) {
+          if (this.selectedPlayIndex === null) return;
+          const shape = this.activeBlocksPlay[this.selectedPlayIndex].shape;
+
+          if (this.canPlace(shape, r, c)) {
+            for (let br = 0; br < shape.length; br++) {
+              for (let bc = 0; bc < shape[0].length; bc++) {
+                if (shape[br][bc] === 1) this.playBoard[r + br][c + bc] = 1;
+              }
+            }
+
+            this.activeBlocksPlay.splice(this.selectedPlayIndex, 1);
+            this.selectedPlayIndex = null;
+
+            this.renderGrid(this.playBoard);
+            this.renderSelectedTray();
+            setTimeout(() => this.checkAndClearLines(), 100);
+          }
+        }
+
+        checkAndClearLines() {
+          let rowsToClear = [];
+          let colsToClear = [];
+
+          for (let r = 0; r < 8; r++)
+            if (this.playBoard[r].every((cell) => cell === 1))
+              rowsToClear.push(r);
+          for (let c = 0; c < 8; c++) {
+            let isFull = true;
+            for (let r = 0; r < 8; r++)
+              if (this.playBoard[r][c] === 0) isFull = false;
+            if (isFull) colsToClear.push(c);
+          }
+
+          if (rowsToClear.length > 0 || colsToClear.length > 0) {
+            rowsToClear.forEach((r) => {
+              this.playBoard[r] = new Array(8).fill(0);
+            });
+            colsToClear.forEach((c) => {
+              for (let r = 0; r < 8; r++) this.playBoard[r][c] = 0;
+            });
+
+            this.instructionsEl.innerText = `🔥 Vừa nổ ${rowsToClear.length} hàng và ${colsToClear.length} cột! 🔥`;
+            this.instructionsEl.style.color = "#4CAF50";
+
+            this.renderGrid(this.playBoard);
+            setTimeout(() => {
+              this.instructionsEl.innerText =
+                "Chọn khối và thả vào lưới. Sẽ tự động nổ hàng/cột khi đầy.";
+              this.instructionsEl.style.color = "var(--text-sub)";
+            }, 3000);
+          }
+        }
+      }
+
+      window.onload = () => new AdvancedBlockBlastUI();
+    </script>
+  </body>
+</html>
